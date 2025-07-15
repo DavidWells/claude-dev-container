@@ -95,6 +95,10 @@ RUN npm install -g claude-flow@alpha pnpm @anthropic-ai/claude-code@latest @goog
 # VScode in web browser
 # RUN curl -fsSL https://code-server.dev/install.sh | sh
 
+# Copy git-profile script and make it executable
+COPY scripts/git-profile /usr/local/bin/git-profile
+RUN chmod +x /usr/local/bin/git-profile
+
 # Create directories for Playwright
 RUN mkdir -p /home/node/.cache/ms-playwright \
   && chown -R node:node /home/node/.cache
