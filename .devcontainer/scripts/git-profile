@@ -1,0 +1,253 @@
+#!/bin/bash
+
+# Git Profile Manager
+# Helps manage multiple git identities in the dev container
+
+PROFILES_DIR="/home/node/.git-profiles"
+CURRENT_PROFILE_FILE="/home/node/.current-git-profile"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+usage() {
+    echo -e "${BLUE}Git Profile Manager${NC}"
+    echo
+    echo "Usage: git-profile [command] [options]"
+    echo
+    echo "Commands:"
+    echo "  list                    List all saved profiles"
+    echo "  create <name>           Create a new profile"
+    echo "  use <name>              Switch to a profile"
+    echo "  current                 Show current profile"
+    echo "  delete <name>           Delete a profile"
+    echo "  edit <name>             Edit a profile"
+    echo "  help                    Show this help message"
+    echo
+    echo "Examples:"
+    echo "  git-profile create work"
+    echo "  git-profile use personal"
+    echo "  git-profile list"
+}
+
+init_profiles_dir() {
+    mkdir -p "$PROFILES_DIR"
+}
+
+list_profiles() {
+    init_profiles_dir
+    echo -e "${BLUE}Available Git Profiles:${NC}"
+    echo
+    
+    if [ ! "$(ls -A "$PROFILES_DIR" 2>/dev/null)" ]; then
+        echo -e "${YELLOW}No profiles found. Create one with: git-profile create <name>${NC}"
+        return
+    fi
+    
+    current_profile=""
+    if [ -f "$CURRENT_PROFILE_FILE" ]; then
+        current_profile=$(cat "$CURRENT_PROFILE_FILE")
+    fi
+    
+    for profile in "$PROFILES_DIR"/*; do
+        if [ -f "$profile" ]; then
+            profile_name=$(basename "$profile")
+            if [ "$profile_name" = "$current_profile" ]; then
+                echo -e "  ${GREEN}● $profile_name${NC} (current)"
+            else
+                echo "  $profile_name"
+            fi
+        fi
+    done
+}
+
+create_profile() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Profile name is required${NC}"
+        echo "Usage: git-profile create <name>"
+        return 1
+    fi
+    
+    init_profiles_dir
+    local profile_file="$PROFILES_DIR/$name"
+    
+    if [ -f "$profile_file" ]; then
+        echo -e "${YELLOW}Profile '$name' already exists${NC}"
+        return 1
+    fi
+    
+    echo -e "${BLUE}Creating profile '$name'${NC}"
+    echo
+    
+    read -p "Enter your name: " user_name
+    read -p "Enter your email: " user_email
+    
+    # Optionally ask for GitHub username
+    read -p "Enter GitHub username (optional): " github_user
+    
+    cat > "$profile_file" << EOF
+# Git Profile: $name
+user.name=$user_name
+user.email=$user_email
+EOF
+    
+    if [ -n "$github_user" ]; then
+        echo "github.user=$github_user" >> "$profile_file"
+    fi
+    
+    echo -e "${GREEN}Profile '$name' created successfully${NC}"
+    echo "Use it with: git-profile use $name"
+}
+
+use_profile() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Profile name is required${NC}"
+        echo "Usage: git-profile use <name>"
+        return 1
+    fi
+    
+    local profile_file="$PROFILES_DIR/$name"
+    
+    if [ ! -f "$profile_file" ]; then
+        echo -e "${RED}Error: Profile '$name' not found${NC}"
+        echo "Available profiles:"
+        list_profiles
+        return 1
+    fi
+    
+    # Apply the profile
+    while IFS='=' read -r key value; do
+        if [[ ! $key =~ ^#.*$ ]] && [ -n "$key" ] && [ -n "$value" ]; then
+            git config --global "$key" "$value"
+        fi
+    done < "$profile_file"
+    
+    # Save current profile
+    echo "$name" > "$CURRENT_PROFILE_FILE"
+    
+    echo -e "${GREEN}Switched to profile '$name'${NC}"
+    show_current_config
+}
+
+show_current() {
+    if [ -f "$CURRENT_PROFILE_FILE" ]; then
+        current_profile=$(cat "$CURRENT_PROFILE_FILE")
+        echo -e "${BLUE}Current profile: ${GREEN}$current_profile${NC}"
+    else
+        echo -e "${YELLOW}No active profile${NC}"
+    fi
+    
+    show_current_config
+}
+
+show_current_config() {
+    echo
+    echo -e "${BLUE}Current git configuration:${NC}"
+    local user_name=$(git config --global user.name 2>/dev/null)
+    local user_email=$(git config --global user.email 2>/dev/null)
+    local github_user=$(git config --global github.user 2>/dev/null)
+    
+    if [ -n "$user_name" ]; then
+        echo "  Name: $user_name"
+    fi
+    
+    if [ -n "$user_email" ]; then
+        echo "  Email: $user_email"
+    fi
+    
+    if [ -n "$github_user" ]; then
+        echo "  GitHub: $github_user"
+    fi
+    
+    if [ -z "$user_name" ] && [ -z "$user_email" ]; then
+        echo -e "  ${YELLOW}No git identity configured${NC}"
+    fi
+}
+
+delete_profile() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Profile name is required${NC}"
+        echo "Usage: git-profile delete <name>"
+        return 1
+    fi
+    
+    local profile_file="$PROFILES_DIR/$name"
+    
+    if [ ! -f "$profile_file" ]; then
+        echo -e "${RED}Error: Profile '$name' not found${NC}"
+        return 1
+    fi
+    
+    read -p "Are you sure you want to delete profile '$name'? (y/N): " confirm
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        rm "$profile_file"
+        
+        # If this was the current profile, clear it
+        if [ -f "$CURRENT_PROFILE_FILE" ] && [ "$(cat "$CURRENT_PROFILE_FILE")" = "$name" ]; then
+            rm "$CURRENT_PROFILE_FILE"
+        fi
+        
+        echo -e "${GREEN}Profile '$name' deleted${NC}"
+    else
+        echo "Operation cancelled"
+    fi
+}
+
+edit_profile() {
+    local name="$1"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Error: Profile name is required${NC}"
+        echo "Usage: git-profile edit <name>"
+        return 1
+    fi
+    
+    local profile_file="$PROFILES_DIR/$name"
+    
+    if [ ! -f "$profile_file" ]; then
+        echo -e "${RED}Error: Profile '$name' not found${NC}"
+        return 1
+    fi
+    
+    ${EDITOR:-nano} "$profile_file"
+    echo -e "${GREEN}Profile '$name' updated${NC}"
+}
+
+# Main command handling
+case "$1" in
+    list|ls)
+        list_profiles
+        ;;
+    create|new)
+        create_profile "$2"
+        ;;
+    use|switch)
+        use_profile "$2"
+        ;;
+    current|show)
+        show_current
+        ;;
+    delete|remove|rm)
+        delete_profile "$2"
+        ;;
+    edit)
+        edit_profile "$2"
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    "")
+        usage
+        ;;
+    *)
+        echo -e "${RED}Error: Unknown command '$1'${NC}"
+        echo
+        usage
+        exit 1
+        ;;
+esac

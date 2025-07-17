@@ -32,7 +32,8 @@
   "remoteUser": "node",
   "mounts": [
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
-    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind"
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig-host,type=bind,readonly"
   ],
   "remoteEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
@@ -42,7 +43,7 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
   "postCreateCommand": "npm install && sudo mkdir -p /opt/google/chrome && sudo ln -sf /home/node/.cache/ms-playwright/chromium-*/chrome-linux/chrome /opt/google/chrome/chrome",
-  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "postStartCommand": "bash /workspace/.devcontainer/scripts/setup-git-auto.sh",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
