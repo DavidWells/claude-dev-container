@@ -43,7 +43,7 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
   "postCreateCommand": "npm install && sudo mkdir -p /opt/google/chrome && sudo ln -sf /home/node/.cache/ms-playwright/chromium-*/chrome-linux/chrome /opt/google/chrome/chrome",
-  "postStartCommand": "bash -c 'git config --global --add safe.directory ${containerWorkspaceFolder} && if [ -f /home/node/.gitconfig-host ]; then cp /home/node/.gitconfig-host /home/node/.gitconfig; else echo \"Setting up default git config. Run git-profile to configure your identity.\"; fi'",
+  "postStartCommand": "bash /workspace/.devcontainer/scripts/setup-git-auto.sh",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
