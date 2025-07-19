@@ -9,10 +9,7 @@
 **/*.map
 
 # generated content
-public/_data
-public/data
-# remote content
-sources
+.devcontainer/.env
 
 # testing
 /coverage

@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip \
   fzf \
   vim \
+  # PAM authentication dependencies
+  libpam0g-dev \
+  libpam-modules \
   # X11 and display dependencies for headful browser testing
   xvfb \
   x11-utils \
@@ -65,6 +68,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
 
+# Install Bun.js (latest version)
+RUN curl -fsSL https://bun.sh/install | bash \
+  && mv ~/.bun/bin/bun /usr/local/bin/bun \
+  && chmod +x /usr/local/bin/bun
+
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
@@ -75,6 +83,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | t
 # Check if group/user already exist and handle accordingly
 RUN (getent group node || groupadd node) \
   && (id -u node &>/dev/null || useradd -g node -s /bin/bash -m node) \
+  && echo 'node:nodepassword' | chpasswd \
   && echo node ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/node \
   && chmod 0440 /etc/sudoers.d/node
 
@@ -91,7 +100,7 @@ RUN mkdir -p /commandhistory \
 ENV DEVCONTAINER=true
 
 # Install global npm packages
-RUN npm install -g claude-flow@alpha pnpm @anthropic-ai/claude-code@latest @google/gemini-cli
+RUN npm install -g pnpm @anthropic-ai/claude-code@latest @google/gemini-cli vibetunnel@1.0.0-beta.13
 # VScode in web browser
 # RUN curl -fsSL https://code-server.dev/install.sh | sh
 
@@ -126,6 +135,7 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "setopt APPEND_HISTORY" \
   -a "alias yolo='claude --dangerously-skip-permissions'" \
   -a "alias gyolo='gemini --yolo'" \
+  -a "alias tailscale='docker exec devcontainer-tailscale tailscale'" \
   -x
 
 ENV GITHUB_OWNER=bailejl
@@ -141,7 +151,8 @@ ENV GITHUB_REPO=Product-Outcomes
 #   && echo "echo CLAUDE_SWARM_ID: \$(echo \$CLAUDE_SWARM_ID)" >> ~/.profile
 
 # Pre-install Playwright browsers as the node user
-RUN npx playwright install chromium firefox webkit
+# RUN npx playwright install chromium firefox webkit
+RUN npx playwright install chromium
 
 # Create Chrome symlink for MCP server compatibility (needed for ARM64)
 # Switch back to root to create system directories
