@@ -83,11 +83,12 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | t
 # Check if group/user already exist and handle accordingly
 RUN (getent group node || groupadd node) \
   && (id -u node &>/dev/null || useradd -g node -s /bin/bash -m node) \
-  && echo 'node:nodepassword' | chpasswd \
+  && echo "node:${NODE_PASSWORD:-nodepassword}" | chpasswd \
   && echo node ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/node \
   && chmod 0440 /etc/sudoers.d/node
 
 ARG USERNAME=node
+ARG NODE_PASSWORD=nodepassword
 
 # Persist shell history for zsh
 RUN mkdir -p /commandhistory \
