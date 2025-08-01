@@ -1,0 +1,39 @@
+{
+  "name": "Claude Code Sandbox",
+  "dockerComposeFile": ["docker-compose.yml"],
+  "service": "devcontainer",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "eamodio.gitlens"],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+  "remoteUser": "node",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "npm install && sudo mkdir -p /opt/google/chrome && sudo ln -sf /home/node/.cache/ms-playwright/chromium-*/chrome-linux/chrome /opt/google/chrome/chrome",
+  "postStartCommand": "bash /workspace/.devcontainer/scripts/setup-git-auto.sh",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite App",
+      "onAutoForward": "notify"
+    }
+  }
+}
