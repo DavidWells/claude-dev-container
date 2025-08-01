@@ -101,7 +101,7 @@ ENV DEVCONTAINER=true
 
 # Install global npm packages with cache mount
 RUN --mount=type=cache,target=/root/.npm \
-    npm install -g pnpm @anthropic-ai/claude-code@latest @google/gemini-cli vibetunnel@1.0.0-beta.13
+    npm install -g pnpm @anthropic-ai/claude-code@latest @google/gemini-cli vibetunnel@latest
 
 # Fix npm cache permissions for node user after global installs
 RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
@@ -142,8 +142,24 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "alias tailscale='docker exec devcontainer-tailscale tailscale'" \
   -x
 
-ENV GITHUB_OWNER=bailejl
-ENV GITHUB_REPO=Product-Outcomes
+# Extract GitHub owner and repo from git remote origin dynamically
+ARG GITHUB_REMOTE_URL
+RUN if [ -n "$GITHUB_REMOTE_URL" ]; then \
+      echo "Extracting GitHub info from: $GITHUB_REMOTE_URL"; \
+      export GITHUB_OWNER=$(echo "$GITHUB_REMOTE_URL" | sed -n 's|.*github\.com[/:]||p' | cut -d'/' -f1); \
+      export GITHUB_REPO=$(echo "$GITHUB_REMOTE_URL" | sed -n 's|.*github\.com[/:]||p' | cut -d'/' -f2 | sed 's|\.git$||'); \
+      echo "GITHUB_OWNER=$GITHUB_OWNER" >> /etc/environment; \
+      echo "GITHUB_REPO=$GITHUB_REPO" >> /etc/environment; \
+      echo "Extracted: GITHUB_OWNER=$GITHUB_OWNER, GITHUB_REPO=$GITHUB_REPO"; \
+    else \
+      echo "No GITHUB_REMOTE_URL provided, using defaults"; \
+      echo "GITHUB_OWNER=unknown" >> /etc/environment; \
+      echo "GITHUB_REPO=unknown" >> /etc/environment; \
+    fi
+
+# Set environment variables from the extracted values
+ENV GITHUB_OWNER=${GITHUB_OWNER:-unknown}
+ENV GITHUB_REPO=${GITHUB_REPO:-unknown}
 
 # # Set up aliases and environment info in profile
 # RUN alias swarm-status="/github status" \
