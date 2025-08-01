@@ -17,7 +17,7 @@ A comprehensive development container setup with Node.js, Deno, Bun.js, Playwrig
 
 ## Quick Start
 
-1. Open in VS Code with Dev Containers extension
+1. Open in VS Code with Dev Containers extension (from Cursor "Anysphere")
 2. Container will automatically build and configure
 3. Git will be auto-configured based on your environment
 
