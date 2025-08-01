@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
       args:
         TZ: '${TZ:-America/Los_Angeles}'
-        GITHUB_REMOTE_URL: '${GITHUB_REMOTE_URL:-}'
+        TUNNEL_PASSWORD: '${TUNNEL_PASSWORD:-nodepassword}'
     container_name: claude-code-devcontainer
     network_mode: service:tailscale
     env_file:

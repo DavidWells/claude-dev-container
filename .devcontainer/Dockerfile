@@ -81,9 +81,10 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | t
 
 # Create node user and configure for development
 # Check if group/user already exist and handle accordingly
+ARG TUNNEL_PASSWORD=nodepassword
 RUN (getent group node || groupadd node) \
   && (id -u node &>/dev/null || useradd -g node -s /bin/bash -m node) \
-  && echo 'node:nodepassword' | chpasswd \
+  && echo "node:${TUNNEL_PASSWORD}" | chpasswd \
   && echo node ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/node \
   && chmod 0440 /etc/sudoers.d/node
 
@@ -140,26 +141,19 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "alias yolo='claude --dangerously-skip-permissions'" \
   -a "alias gyolo='gemini --yolo'" \
   -a "alias tailscale='docker exec devcontainer-tailscale tailscale'" \
+  -a "# Auto-set GitHub environment variables from git remote" \
+  -a "/usr/local/bin/set-github-env.sh >/dev/null 2>&1 || true" \
   -x
 
-# Extract GitHub owner and repo from git remote origin dynamically
-ARG GITHUB_REMOTE_URL
-RUN if [ -n "$GITHUB_REMOTE_URL" ]; then \
-      echo "Extracting GitHub info from: $GITHUB_REMOTE_URL"; \
-      export GITHUB_OWNER=$(echo "$GITHUB_REMOTE_URL" | sed -n 's|.*github\.com[/:]||p' | cut -d'/' -f1); \
-      export GITHUB_REPO=$(echo "$GITHUB_REMOTE_URL" | sed -n 's|.*github\.com[/:]||p' | cut -d'/' -f2 | sed 's|\.git$||'); \
-      echo "GITHUB_OWNER=$GITHUB_OWNER" >> /etc/environment; \
-      echo "GITHUB_REPO=$GITHUB_REPO" >> /etc/environment; \
-      echo "Extracted: GITHUB_OWNER=$GITHUB_OWNER, GITHUB_REPO=$GITHUB_REPO"; \
-    else \
-      echo "No GITHUB_REMOTE_URL provided, using defaults"; \
-      echo "GITHUB_OWNER=unknown" >> /etc/environment; \
-      echo "GITHUB_REPO=unknown" >> /etc/environment; \
-    fi
+# Copy GitHub environment setup script (as root)
+USER root
+COPY scripts/set-github-env.sh /usr/local/bin/set-github-env.sh
+RUN chmod +x /usr/local/bin/set-github-env.sh
+USER node
 
-# Set environment variables from the extracted values
-ENV GITHUB_OWNER=${GITHUB_OWNER:-unknown}
-ENV GITHUB_REPO=${GITHUB_REPO:-unknown}
+# Set default GitHub environment variables (will be overridden by script at runtime)
+ENV GITHUB_OWNER=unknown
+ENV GITHUB_REPO=unknown
 
 # # Set up aliases and environment info in profile
 # RUN alias swarm-status="/github status" \

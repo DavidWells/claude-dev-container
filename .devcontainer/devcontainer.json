@@ -28,7 +28,7 @@
   "remoteUser": "node",
   "workspaceFolder": "/workspace",
   "postCreateCommand": "npm install && sudo mkdir -p /opt/google/chrome && sudo ln -sf /home/node/.cache/ms-playwright/chromium-*/chrome-linux/chrome /opt/google/chrome/chrome",
-  "postStartCommand": "bash /workspace/.devcontainer/scripts/setup-git-auto.sh",
+  "postStartCommand": "bash /workspace/.devcontainer/scripts/setup-git-auto.sh && /usr/local/bin/set-github-env.sh",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
