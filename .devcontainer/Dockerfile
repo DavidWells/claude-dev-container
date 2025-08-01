@@ -102,6 +102,9 @@ ENV DEVCONTAINER=true
 # Install global npm packages with cache mount
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm @anthropic-ai/claude-code@latest @google/gemini-cli vibetunnel@1.0.0-beta.13
+
+# Fix npm cache permissions for node user after global installs
+RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
 # VScode in web browser
 # RUN curl -fsSL https://code-server.dev/install.sh | sh
 
@@ -160,6 +163,9 @@ USER root
 
 # Install Playwright globally as root
 RUN npm install -g @playwright/test
+
+# Fix npm cache permissions again after Playwright install
+RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
 
 # Switch back to node user for browser installation
 USER node
