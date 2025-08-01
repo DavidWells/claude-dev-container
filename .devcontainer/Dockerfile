@@ -99,8 +99,9 @@ RUN mkdir -p /commandhistory \
 # Set `DEVCONTAINER` environment variable to help with orientation
 ENV DEVCONTAINER=true
 
-# Install global npm packages
-RUN npm install -g pnpm @anthropic-ai/claude-code@latest @google/gemini-cli vibetunnel@1.0.0-beta.13
+# Install global npm packages with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pnpm @anthropic-ai/claude-code@latest @google/gemini-cli vibetunnel@1.0.0-beta.13
 # VScode in web browser
 # RUN curl -fsSL https://code-server.dev/install.sh | sh
 
@@ -150,8 +151,18 @@ ENV GITHUB_REPO=Product-Outcomes
 #   && echo "echo GITHUB_REPO: \$(echo \$GITHUB_REPO)" >> ~/.profile \
 #   && echo "echo CLAUDE_SWARM_ID: \$(echo \$CLAUDE_SWARM_ID)" >> ~/.profile
 
-# Pre-install Playwright browsers as the node user
-# RUN npx playwright install chromium firefox webkit
+# Create cache directories with proper permissions first
+RUN mkdir -p /home/node/.cache/ms-playwright /home/node/.npm && \
+    chown -R node:node /home/node/.cache /home/node/.npm
+
+# Switch back to root to install global packages
+USER root
+
+# Install Playwright globally as root
+RUN npm install -g @playwright/test
+
+# Switch back to node user for browser installation
+USER node
 RUN npx playwright install chromium
 
 # Create Chrome symlink for MCP server compatibility (needed for ARM64)

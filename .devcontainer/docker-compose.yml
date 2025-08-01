@@ -1,10 +1,10 @@
-version: '3.8'
-
 services:
   tailscale:
     image: tailscale/tailscale:latest
     container_name: devcontainer-tailscale
     hostname: claude-code-dev
+    env_file:
+      - .env
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -25,6 +25,10 @@ services:
         TZ: '${TZ:-America/Los_Angeles}'
     container_name: claude-code-devcontainer
     network_mode: service:tailscale
+    env_file:
+      - .env
+    depends_on:
+      - tailscale
     volumes:
       - ..:/workspace:cached
       - claude-code-bashhistory:/commandhistory
